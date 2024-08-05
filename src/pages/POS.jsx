@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const POS = () => {
   const [cart, setCart] = useState([]);
@@ -7,7 +8,14 @@ const POS = () => {
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products'],
-    queryFn: () => fetch('/api/products').then(res => res.json()),
+    queryFn: async () => {
+      const res = await fetch('/api/products');
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`API error: ${res.status} ${res.statusText}\n${errorText}`);
+      }
+      return res.json();
+    },
   });
 
   const handleBarcodeSubmit = (e) => {
@@ -21,12 +29,23 @@ const POS = () => {
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
+  if (isLoading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (error) return (
+    <Alert variant="destructive" className="m-4">
+      <AlertTitle>Error</AlertTitle>
+      <AlertDescription>
+        <p>Failed to load products. Please try again later.</p>
+        <details className="mt-2">
+          <summary>Error details</summary>
+          <pre className="mt-2 whitespace-pre-wrap">{error.message}</pre>
+        </details>
+      </AlertDescription>
+    </Alert>
+  );
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Point of Sale</h1>
+      <h1 className="text-3xl font-bold mb-6">Point of Sale</h1>
       <form onSubmit={handleBarcodeSubmit} className="mb-4">
         <input
           type="text"
